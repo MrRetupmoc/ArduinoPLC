@@ -1,5 +1,20 @@
+/*------------------------------------------------------------------------------------------------------
+                              Author : Evan Richinson aka MrRetupmoc42
+               
+Arduino PLC with Sinking Moffsets for Output and 1/5 Resistor Analog Input for 25vDC Inputs
+   
+March 21th 2016   : Wrote PLC Scan Process + Memory Input, Output and Bits + Scan Time Calculation
+                   
+-------------------------------------------------------------------------------------------------------*/
+
+//Config Deafult Values    -------------------------------------------------------------------------------
+
+unsigned long scantime_init;
+unsigned long scantime_end;
 int i = 0; //Loop Counter
 int inputVoltageThreshold = ((5.0 / 1024) * 1); // > 1v Threshold for Analog Input to Digital
+
+//Config of Arduino PLC Pins   ----------------------------------------------------------------------------
 
 /*//if UNO
 int Input_MAX = 6;
@@ -37,15 +52,18 @@ void setup() {
   for(i = 0; i < Output_MAX; i++) { //Init output Pins
     pinMode(Output_Digital_Pins[i], OUTPUT);
   }
+
+  Serial.begin(9600);
 }
 
 // the loop function runs over and over again forever
 void loop() {
-  //Start Scan Time
+  //Start Scan Time    ---------------------------------------------------------------
+  scantime_init = millis();
   
   
-  //Input Pull
-  for(i = 0; i < Input_MAX; i++) { //Read input Pins
+  //Input Pull    --------------------------------------------------------------------
+  for(i = 0; i < Input_MAX; i++) { //Read Pins and Set Input Array
     if (analogRead(Input_Analog_Pins[i]) > inputVoltageThreshold) Input_Analog[i] = true;
     else Input_Analog[i] = false;
   }
@@ -53,8 +71,12 @@ void loop() {
 
   //Process Control    ----------------------------------------------------------------
 
-  //System Running = Start + Stop
-  Memory_bool[0] = Input_Analog[0] && Input_Analog[1];
+  //If Start Pressed + Stop NOT Pressed Turn On System Running
+  if(Input_Analog[0] && Input_Analog[1]) Memory_bool[0] = true;
+  
+  //If Stop Pressed then System Running Set False
+  if(!Input_Analog[0]) Memory_bool[0] = false;
+
 
   //Green Light = System Running
   Output_Digital[0] = Memory_bool[0];
@@ -65,12 +87,20 @@ void loop() {
   //End Process Control    ------------------------------------------------------------
 
 
-  //Output Write
+  //Output Write    -------------------------------------------------------------------
   for(i = 0; i < Output_MAX; i++) { //Read input Pins
     if (Output_Digital[i]) digitalWrite(Output_Digital_Pins[i], HIGH);
     else digitalWrite(Output_Digital_Pins[i], LOW);
   }
 
-  //Calc and Print Scantime
+
+  //Calc and Print Scantime    --------------------------------------------------------
+  scantime_end = millis();
   
+  Serial.print("Scantime: ");
+  Serial.println(scantime_end - scantime_init);
+  
+
+  //Slowdown Code Speed ?!    --------------------------------------------------------
+  //delay(1);
 }
